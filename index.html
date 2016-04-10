@@ -1,0 +1,336 @@
+﻿<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>Active HIT</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+	<script src="mturk.js"></script>
+</head>
+<body>
+	<form id="mturk_form" name="mturk_form" method="POST">
+		<div>
+		Use the left and right arrow keys to avoid the incoming asteroids.  Hitting an asteroid head on <br />
+		or moving into the side of one will result in the crashing of your ship.  You'll earn $0.001 per second <br />
+		that you play the game.  The game will end once you reach the maximum reward, $2.00, or you collide with <br />
+		an asteroid.  Good luck! <br /><br />
+		Note: Moving off the screen to the left will result in your ship appearing on the far right and vice-versa. <br />
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Also, when you press the "Start Game" button, you'll begin with the exact scenario displayed below.
+		</div>
+		<input type="button" id="startGame" value="Start Game" style="margin-bottom: 10px; margin-left: 80px;"/>
+		<br />
+        <input type="hidden" id="money_earned_field" name="money_earned" class="input" />		
+		<input type="hidden" id="developer_console_field" name="developer_console" class="input" />		
+		<input type="hidden" id="seconds_field" name="seconds" class="input" />		
+		<input type="hidden" id="start_time_field" name="start_time" class="input" />		
+		<input type="hidden" id="end_time_field" name="end_time" class="input" />	
+		<input type="hidden" id="left_clicks_field" name="left_clicks" class="input" />		
+		<input type="hidden" id="right_clicks_field" name="right_clicks" class="input" />	
+	</form>
+</body>
+</html>
+
+<script type="text/javascript" language="JavaScript">	
+    var rows = 4; //5 rows since 0 indexed
+	var columns = 4; //5 columns since 0 indexed
+	var hiddenRows = 2001 + rows;
+	var board = [];
+	var matrix = [];
+	var list = [];
+	var ship_location = 0
+	var ship;
+	var newRow = 0;
+	var money = 0.000;
+	var startTime;
+	var leftClicks = 0;
+	var rightClicks = 0;
+	var seconds = 0;
+	
+	//See if the Turker opened their developer tools
+	var checkStatus;
+	var element = new Image();
+	element.__defineGetter__('id', function() {
+		checkStatus = 'on';
+	});
+
+	$(function () {
+		
+		//Checking if the user opened developer tools
+		var checkForDeveloperTools = setInterval(function() {
+			checkStatus = 'off';
+			console.log(element);
+			console.clear();
+			if(checkStatus == 'on') {
+			clearInterval(checkForDeveloperTools);
+			//alert('cutting off');
+		}
+		}, 1000);
+		
+		$(document).keydown(function(e) {
+		  if(e.keyCode ==37) {
+			leftClicks++;
+			var left = parseInt(ship.css('left').replace('px', ''));
+			if(ship_location == 0) {
+				//check for wrap around
+				ship_location = columns;
+				ship.remove();
+				ship.css('left', columns * 50 + 'px');
+				shipHit();
+			}
+			else {
+				ship_location--;
+				ship.remove();
+				ship.css('left', left - 50 + 'px');
+				$('#board').append(ship);
+				shipHit();
+			}
+		  }
+		  else if(e.keyCode == 39) {
+			rightClicks++;
+			var left = parseInt(ship.css('left').replace('px', ''));
+			if(ship_location == columns) {
+				//check for wrap around
+				ship_location = 0;
+				ship.remove();
+				ship.css('left', 0 + 'px');
+				shipHit();
+			}
+			else {
+				ship_location++;
+				ship.remove();
+				ship.css('left', left + 50 + 'px');
+				$('#board').append(ship);
+				shipHit();
+			}
+		  }
+		});
+		
+		
+		$('body').append($('<div id="board" class="board"></div>'));
+		createMyGrid();
+		createPath();
+		for(var k = 0; k < rows + 1; k++)
+			addRow();
+			
+		setupShip();
+		setupMoney();
+		
+		$('#startGame').on('click', function() {
+			//once they say go 
+			startTime = new Date().toUTCString();	
+			var test = setInterval(addRow, 1000);
+		});
+	});
+	
+	function setupShip() {
+		for(var j = 0; j < columns + 1; j++) {
+			var gridcell = $('#gridcell_' + rows + '_' + j);
+			if(gridcell.data('partOfPath') == true) {
+				ship = $('<div />').attr('class', 'ship').attr('id', 'ship').html('<img src="ship.png" />');
+				ship.css('left', gridcell.css('left'));
+				ship.css('top', gridcell.css('top'));
+				$('#board').append(ship);
+				ship_location = j;
+				break;
+			}
+		}
+	}
+	
+	function setupMoney() {
+		var div = $('<div />').attr('class', 'moneycell').attr('id', 'money').html('$0.000');
+		//div.css('left', '400px')
+		$('body').append(div);
+	}
+	
+	function addRow() {
+		seconds++;
+		for(var j = 0; j <= columns; j++)
+				$('#gridcell_' + rows + '_' + j).remove();
+				
+		$('#board').children().each(function () {
+			this.id = this.id.substring(0,9) + (parseInt(this.id.substring(9,10)) + 1) + this.id.substring(10,this.id.length)
+			$(this).css({'top' : parseInt(this.style.top.replace('px', '')) + 50 + 'px'});
+			
+		});
+
+		for (var j = 0; j <= columns; j++) {
+			var div = matrix[newRow][j];
+			div.attr('id', 'gridcell_0_' + j);
+			div.css('left', j * 50 + 'px');
+			div.css('top', '0px');
+			$('#board').append(div);
+		}
+		newRow++;
+		if(ship) {
+			shipHit();
+			addMoney();
+		}
+	}
+	
+	function addMoney() {
+		money = money + 0.001;
+		var roundedMoney = Math.round(money * 1000) / 1000;
+		if((roundedMoney + '').length == 4)
+			$('#money').html('$' + roundedMoney + '0');
+		else 
+			$('#money').html('$' + roundedMoney);
+			
+		if(roundedMoney == 2)
+			endGame("Congratulations, you beat the game!  You earned a total of $2.00.");
+	}
+	
+	function endGame(endText) {
+		alert(endText);
+		$('#money_earned_field').val(money);
+		$('#developer_console_field').val(checkStatus);
+		$('#seconds_field').val(seconds);
+		$('#start_time_field').val(startTime);
+		var d = new Date().toUTCString();
+		$('#end_time_field').val(d);
+		$('#left_clicks_field').val(leftClicks);
+		$('#right_clicks_field').val(rightClicks);
+		
+		$('#mturk_form').submit();
+	}
+	
+	function shipHit() {
+		ship.css('top', '200px');
+		$('#board').append(ship);
+		for(var j = 0; j <= columns; j++) {
+			var gridcell = $('#gridcell_' + rows + '_' + j);
+			if(gridcell.css('top') == ship.css('top') && gridcell.css('left') == ship.css('left') && gridcell.html().indexOf('img') != -1) {
+				var moneyEarned = Math.round(money * 100) / 100;
+				if(moneyEarned == 0)
+					endGame("You've been hit, game over!  Unfortunately you didn't survive long enough to get a reward.");
+				else
+					endGame("You've been hit, game over!  You earned a total of $" + moneyEarned);
+			}
+		}
+	}
+	
+	function createPath() {
+		var row = 0;
+		var randomColumn = Math.floor(Math.random() * (matrix[1].length - 0) + 0);
+
+		matrix[row][randomColumn].data('partOfPath', true);
+		matrix[row][randomColumn].addClass("blue");
+		matrix[row][randomColumn].html('');
+
+
+		do {
+			CreateNewFrontier(row, randomColumn);
+			var randomNumber = Math.floor((Math.random() * (list.length)));
+
+			row = list[randomNumber][0];
+			randomColumn = list[randomNumber][1];
+
+			MarkPath(row, randomColumn);
+		} while (row < matrix.length - 1)
+	}
+
+	function CreateNewFrontier(row, column) {
+		list = [];
+		//if (row - 1 >= 1) AddToFrontier(row - 1, column);
+		if (column + 1 < matrix[row].length) AddToFrontier(row, column + 1);
+		if (row + 1 < matrix.length) AddToFrontier(row + 1, column);
+		if (column - 1 >= 0) AddToFrontier(row, column - 1);
+	}
+
+	function AddToFrontier(row, column) {
+		if (matrix[row][column].data('partOfPath') != true) {
+			var markedNeighbors = 0;
+			if (row - 1 >= 0 && !IsNotMarked(row - 1, column)) {
+				markedNeighbors++;
+			}
+			if (column + 1 < matrix[row].length && !IsNotMarked(row, column + 1)) {
+				markedNeighbors++;
+			}
+			if (row + 1 < matrix.length && !IsNotMarked(row + 1, column)) {
+				markedNeighbors++;
+			}
+			if (column - 1 >= 0 && !IsNotMarked(row, column - 1)) {
+				markedNeighbors++;
+			}
+
+			if (markedNeighbors < 2) {
+				var index = list.length;
+				list[index] = [];
+				list[index][0] = row;
+				list[index][1] = column;
+			}
+		}
+	}
+
+	function MarkPath(row, column) {
+		matrix[row][column].data('partOfPath', true);
+		matrix[row][column].addClass("blue");
+		matrix[row][column].html('');
+	}
+
+	function IsNotMarked(row, column) {
+		if (row < 0 || row >= matrix.length) return true;
+		if (column < 0 || column >= matrix[row].length) return true;
+		return matrix[row][column].data('partOfPath') != true;
+	}
+
+	function createMyGrid() {
+		//create 5x5 matrix
+		for (var i = 0; i <= hiddenRows; i++) {
+			matrix[i] = [];
+			for (var j = 0; j <= columns; j++) {
+				var div = $('<div />').attr('class', 'gridcell').attr('id', 'gridcell_' + i + '_' + j).html('');
+				var random = Math.random();
+				if(random > .5) {
+					div = $('<div />').attr('class', 'gridcell asteroid').attr('id', 'gridcell_' + i + '_' + j).html('<img src="asteroid_' + Math.ceil(Math.random() * 4) + '.png" />');
+				}
+				div.css('left', j * 50 + 'px');
+				div.css('top', i * 50 + 'px');
+				matrix[i][j] = div;
+				if(i < rows + 1)
+					$('#board').append(div);
+			}
+		}
+	}
+</script>
+
+<style>
+    .instructions {
+        font: 24px arial;
+        width: 50%;
+    }
+	.board {
+		overflow: hidden;
+		width: 250px;
+		height: 250px;
+		position: relative;
+		background-color: lightgrey;
+		display: inline-block;
+	}
+	.gridcell {
+		height: 50px;
+		width: 50px;
+		position: absolute;
+	}
+	
+	.ship {
+		height: 50px;
+		width: 50px;
+		position: absolute;
+		z-index: 10;
+	}
+	
+	.moneycell {
+		width: 200px;
+		height: 200px;
+		border: 5px solid black;
+		display: inline;
+		margin-left: 50px;
+		font-family: Century Gothic;
+		font-size: 32px;
+	}
+	
+	.blue {
+	}
+    
+</style>
