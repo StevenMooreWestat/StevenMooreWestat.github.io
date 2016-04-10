@@ -144,58 +144,23 @@
 	var local_ship_position = 5;
 	var is_active = true;
 	function updateBoard() {
-		var d = {"key":"StevenJamesMoore", "data":"testd"};
+		var d = {active: true, position: ship_location};
 		$.ajax({
-			url: 'http://www.codingthecrowd.com/counter.php',
+			url: 'http://codingthecrowd.com/counter.php',
 			type: 'POST',
-			data: JSON.stringify(d),
             contentType: "application/json; charset=utf-8",
             dataType: "jsonp",
-			/*data: {
+			data: {
 				key: 'StevenJamesMoore',
-				data: 'myd'
+				data: JSON.stringify(d)
 			},
-			dataType: 'JSON',
-			async: true,*/
 			success: function(data){
 				var s = 'steven';
 			},
 			failure: function(data) {
 				var f = 'steven';
 			}
-			/*url: "http://www.codingthecrowd.com/counter.php",
-			
-			// The name of the callback parameter, as specified by the YQL service
-			jsonp: "callback",
-			
-			// Tell jQuery we're expecting JSONP
-			dataType: "jsonp",
-		 
-			// Tell YQL what we want and that we want JSON
-			data: {
-				key: 'StevenJamesMoore',
-				data: 'myd'
-			},
-		 
-			// Work with the response
-			success: function( response ) {
-				console.log( response ); // server response
-				var success = 'steven';
-			},
-			failure: function ( response ) {
-				console.log( response );
-				var failed = 'steven';
-			}*/
 		});
-	/*
-	  $.getJSON("//www.codingthecrowd.com/counter.php", {key: 'StevenJamesMoore', data: {localship: local_ship_position, active: is_active}})
-		  .done(function(json) {
-			var breakPoint = 'here';
-		   })      
-		  .fail(function(jqxhr, textStatus, error) {
-			  var err = textStatus + ", " + error;
-			  console.log( "Request Failed: " + err );
-	  });*/
 	}
 	
 	function setupMoney() {
