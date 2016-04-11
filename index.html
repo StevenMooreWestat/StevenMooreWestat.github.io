@@ -123,7 +123,8 @@
 		createPath();
 		//for(var k = 0; k < rows + 1; k++)
 		//	addRow();
-		setInterval(updateBoard, 100);
+		//setInterval(updateBoard, 333);
+		updateBoard();
 		
 		$('#startGame').on('click', function() {
 			//once they say go 
@@ -161,8 +162,8 @@
 		};
 		$.ajax({
 			url: 'https://codingthecrowd.com/counter.php',
-			type: 'POST',
-            contentType: "application/json; charset=utf-8",
+			/*type: 'GET',
+            contentType: "application/json; charset=utf-8",*/
             dataType: "jsonp",
 			data: {
 				key: 'StevenJamesMoore',
@@ -205,6 +206,7 @@
 					rowIndex = newRowIndex;
 					addRow();
 				}
+				updateBoard();
 			},
 			failure: function(data) {
 				var f = 'steven';
