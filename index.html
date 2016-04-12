@@ -75,6 +75,7 @@
 	});
 
 	$(function () {
+		alert('Jacob Bean');
 		mediator = getParameterByName('mediator');
 		if(!mediator) {
 			alert('please input a valid mediator, for example "StevenMooreWestat.github.io/?mediator=average"');
@@ -232,7 +233,7 @@
 				if(mediator == 'average') {
 					var sum = 0;
 					for(var l = 0; l < positions.length; l++) {
-						sum += positions[l];
+						sum += parseInt(positions[l]);
 					}
 					var averagePosition = Math.round(sum / positions.length);
 					group_position = averagePosition;
