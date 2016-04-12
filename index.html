@@ -12,11 +12,19 @@
 	<form id="mturk_form" name="mturk_form" method="POST">
 		<div>
 		Use the left and right arrow keys to avoid the incoming asteroids.  Hitting an asteroid head on <br />
-		or moving into the side of one will result in the crashing of your ship.  You'll earn $0.001 per second <br />
+		or moving into the side of one will result in the crashing of your team's alien spaceship.  You'll earn $0.001 per second <br />
 		that you play the game.  The game will end once you reach the maximum reward, $2.00, or you collide with <br />
-		an asteroid.  Good luck! <br /><br />
+		an asteroid.
+		<br />
+		This version of the game is a <b>team</b> one, meaning you'll play along anyone else playing with your current setting (mediator=average/better). <br />
+		Your individual position is marked by the green square and your team's position is that of the alien spaceship. <br />
+		When the team's alien spaceship collides with an asteroid, the game is over for everyone on the team. <br />
+		Your green square is free to move about and get hit with asteroids without it counting.  However, the position of your green square <br />
+		influences the position of your team's spaceship.  When "mediator=average" the spaceship's position is that of average of every player's <br />
+		current position.  When the "mediator=better" each player's position has a different weight on the collective spaceship's position <br />
+		depending on how long they've survived in the game.  Best of luck, your team is counting on you! <br /><br />
 		Note: Moving off the screen to the left will result in your ship appearing on the far right and vice-versa. <br />
-		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Also, when you press the "Start Game" button, you'll begin with the exact scenario displayed below.
+		&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Also, when you press the "Start Game" button, you'll get a 3 second countdown before the game begins, so get into position!
 		</div>
 		<input type="button" id="startGame" value="Start Game" style="margin-bottom: 10px; margin-left: 80px;"/>
 		<br />
