@@ -349,7 +349,7 @@
 		
 		for(var j = 0; j <= columns; j++) {
 			var gridcell = $('#gridcell_' + rows + '_' + j);
-			if(shipActive == 1 && gridcell.css('top') == ship.css('top') && gridcell.css('left') == ship.css('left') && gridcell.html().indexOf('img') != -1) {
+			if(shipActive == 1 && gridcell.css('top') == group.css('top') && gridcell.css('left') == group.css('left') && gridcell.html().indexOf('img') != -1) {
 				shipActive = 0;
 				var moneyEarned = Math.round(money * 100) / 100;
 				if(moneyEarned == 0)
