@@ -206,7 +206,7 @@
 				for(var i = 0; i < data.results.length; i++) {
 					var result = data.results[i].data;
 					var active = result[result.indexOf('"active":') + '"active":'.length];
-					if(active == 0) {
+					if(active == 0 && shipActive != 0) {
 						var moneyEarned = Math.round(money * 100) / 100;
 						endGame("Someone else playing the game with you has crashed, causing your team to lose!  You've earned a total of $" + moneyEarned);
 					}
