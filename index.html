@@ -20,6 +20,9 @@
 		</div>
 		<input type="button" id="startGame" value="Start Game" style="margin-bottom: 10px; margin-left: 80px;"/>
 		<br />
+		<div id="countdownTimer" class="countdown">
+		</div>
+		<br />
         <input type="hidden" id="money_earned_field" name="money_earned" class="input" />		
 		<input type="hidden" id="developer_console_field" name="developer_console" class="input" />		
 		<input type="hidden" id="seconds_field" name="seconds" class="input" />		
@@ -32,6 +35,10 @@
 </html>
 
 <script type="text/javascript" language="JavaScript">	
+/*
+	DONT LOOK AT THIS NASTY CODE, ITS A COMBINATION OF MULTIPLE IDEAS INTO ONE ~THANKFULLY~ WORKING SET OF CODE
+	I should have obfuscated it
+*/
     var rows = 4; //5 rows since 0 indexed
 	var columns = 4; //5 columns since 0 indexed
 	var hiddenRows = 3595 + rows;
@@ -62,6 +69,7 @@
 	var checkStatus;
 	var element = new Image();
 	var mediator;
+	var shipActive = 2;
 	element.__defineGetter__('id', function() {
 		checkStatus = 'on';
 	});
@@ -79,7 +87,6 @@
 			console.clear();
 			if(checkStatus == 'on') {
 			clearInterval(checkForDeveloperTools);
-			//alert('cutting off');
 		}
 		}, 1000);
 		
@@ -126,13 +133,25 @@
 		createMyGrid();
 		createPath();
 		updateBoard();
-		
+		var seconds = 3;
+        var second = 0;
+        var interval;
 		$('#startGame').on('click', function() {
-			//once they say go 
 			$('#startGame').prop('disabled', true);
-			gameStart = true;
-			sTime = new Date().getTime();
-			startTime = new Date().toUTCString();	
+			interval = setInterval(function() {
+				$('#countdownTimer').html('Your game will begin in ' + (seconds - second) + ' seconds');
+				gameStart = true;
+				if (second >= seconds) {
+					clearInterval(interval);
+					$('#countdownTimer').html('');
+					//once they say go
+					sTime = new Date().getTime();
+					startTime = new Date().toUTCString();	
+					shipActive = 1;
+				}
+
+				second++;
+			}, 1000);
 		});
 	});
 	
@@ -157,7 +176,7 @@
 
 	function updateBoard() {
 		var d = {
-			active: 1, 
+			active: shipActive, 
 			position: ship_location,
 			startTime: sTime
 		};
@@ -171,6 +190,8 @@
 			success: function(data){
 				var s = 'steven';
 				var positions = [];
+				var times = [];
+				var cTime = new Date().getTime();
 				var newRowIndex = new Date(data.time * 1000).getMinutes() * 60 + new Date(data.time * 1000).getSeconds();
 				if(firstLoad) {
 					rowIndex = new Date(data.time * 1000).getMinutes() * 60 + new Date(data.time * 1000).getSeconds();
@@ -182,25 +203,73 @@
 					setupMoney();
 					firstLoad = false;
 				}
-				console.log("row index : " + rowIndex);
 				for(var i = 0; i < data.results.length; i++) {
 					var result = data.results[i].data;
 					var active = result[result.indexOf('"active":') + '"active":'.length];
-					var position = result[result.indexOf('"position":') + '"position":'.length];
-					positions.push(position);
-					var cTime = new Date().getTime();
-					var sTime = parseInt(result.split('"startTime":')[1].split('}')[0]);
-					var elapsedTime = cTime - sTime;
-					var breakPoint = 'nasty code is nasty';
+					if(active == 0) {
+						var moneyEarned = Math.round(money * 100) / 100;
+						endGame("Someone else playing the game with you has crashed, causing your team to lose!  You've earned a total of $" + moneyEarned);
+					}
+					if(active == 1 && mediator == 'average') {
+						var position = result[result.indexOf('"position":') + '"position":'.length];
+						positions.push(position);
+					}
+					/*
+						The general idea is the longer a player has survived in a game, the more their position should influence
+						the correct group's position.  However, I need to account for the case(s) where the player decides to troll
+						or quit the game.  Well, actually then their team would lose anway, hmmmmm.... 
+					*/
+					if(active == 1 && mediator == 'better') {
+						var position = result[result.indexOf('"position":') + '"position":'.length];
+						positions.push(position);
+						var sTime = parseInt(result.split('"startTime":')[1].split('}')[0]);
+						var elapsedTime = cTime - sTime;
+						times.push(elapsedTime);
+						var breakPoint = 'nasty code is nasty';
+					}
 				}
-				positions = [0, ship_location];
-				var sum = 0;
-				for(var l = 0; l < positions.length; l++) {
-					sum += positions[l];
+				
+				if(mediator == 'average') {
+					var sum = 0;
+					for(var l = 0; l < positions.length; l++) {
+						sum += positions[l];
+					}
+					var averagePosition = Math.round(sum / positions.length);
+					group_position = averagePosition;
+					group.css('left', (averagePosition * 50) + 'px');
 				}
-				var averagePosition = Math.round(sum / positions.length);
-				group_position = averagePosition;
-				group.css('left', (averagePosition * 50) + 'px');
+				
+				if(mediator == 'better') {
+					var timeTotal = 0;
+					var columnPositions = [];
+					for(var c = 0; c < columns + 1; c++) {
+						columnPositions[c] = 0;
+					}
+					for(var t = 0; t < times.length; t++) {
+						timeTotal += times[t];
+					}
+					if(timeTotal == 0)
+						timeTotal = 1;
+						
+					var positionsSum = 0;
+					for(var l = 0; l < positions.length; l++) {
+						var pos = positions[l]; //0 - amount of columns, in this case 4
+						columnPositions[pos] = columnPositions[pos] + (times[l] / timeTotal) * 100;
+					}
+					
+					var gPosition = -1;
+					var cPosition = -1;
+					for(var x = 0; x < columnPositions.length; x++) {
+						if(columnPositions[x] > cPosition) {
+							cPosition = columnPositions[x]
+							gPosition = x;
+						}
+					}
+					
+					var averagePosition = Math.round(positionsSum / positions.length);
+					group_position = gPosition;
+					group.css('left', (gPosition * 50) + 'px');
+				}
 				
 				if(rowIndex != newRowIndex) {
 					rowIndex = newRowIndex;
@@ -209,18 +278,13 @@
 				updateBoard();
 			},
 			failure: function(data) {
-				var f = 'steven';
+				alert('Sorry, but the the server cannot be contacted at this time, please try again.');
 			}
 		});
-		/*
-		For the mediator, you could have the weight of each person's position be a funciton of how long they've survied in the game
-		
-		*/
 	}
 	
 	function setupMoney() {
 		var div = $('<div />').attr('class', 'moneycell').attr('id', 'money').html('$0.000');
-		//div.css('left', '400px')
 		$('body').append(div);
 	}
 	
@@ -245,7 +309,8 @@
 		newRow++;
 		if(ship && gameStart) {
 			shipHit();
-			addMoney();
+			if(shipActive == 1)
+				addMoney();
 		}
 	}
 	
@@ -262,6 +327,7 @@
 	}
 	
 	function endGame(endText) {
+		updateBoard();
 		alert(endText);
 		$('#money_earned_field').val(money);
 		$('#developer_console_field').val(checkStatus);
@@ -282,7 +348,8 @@
 		$('#board').append(group);
 		for(var j = 0; j <= columns; j++) {
 			var gridcell = $('#gridcell_' + rows + '_' + j);
-			if(gridcell.css('top') == ship.css('top') && gridcell.css('left') == ship.css('left') && gridcell.html().indexOf('img') != -1) {
+			if(shipActive == 1 && gridcell.css('top') == ship.css('top') && gridcell.css('left') == ship.css('left') && gridcell.html().indexOf('img') != -1) {
+				shipActive = 0;
 				var moneyEarned = Math.round(money * 100) / 100;
 				if(moneyEarned == 0)
 					endGame("You've been hit, game over!  Unfortunately you didn't survive long enough to get a reward.");
@@ -454,6 +521,12 @@
 	}
 	
 	.blue {
+	}
+	
+	.countdown {
+		font-size: 24px;
+		color: green;
+		font-style: bold;
 	}
     
 </style>
